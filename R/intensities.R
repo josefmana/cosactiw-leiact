@@ -125,7 +125,7 @@ set_priors <- function() {
 #' \describe{
 #'   \item{`linear_time`}{Time bin entered as a numeric linear predictor
 #'     (`Time_num`).}
-#'   \item{`reverse_time`}{Time entered as years before assessment
+#'   \item{`discrete_time`}{Time entered as years before assessment
 #'     (`Time_past`), so that the slope reflects change relative to the
 #'     participant's age.}
 #'   \item{`ordered_time`}{Time bin entered as an ordered monotonic predictor
@@ -144,9 +144,9 @@ set_priors <- function() {
 #' @export
 set_formulas <- function() {
   list(
-    linear_time  = bf(logIntensity ~ 1 + Time_num  * SA * Activity_type + (1 + Time_num  | ID) + (1 + Time_num  | Category)),
-    reverse_time = bf(logIntensity ~ 1 + Time_past * SA * Activity_type + (1 + Time_past | ID) + (1 + Time_past | Category)),
-    ordered_time = bf(logIntensity ~ 1 + mo(Time_bin) * SA * Activity_type + (1 + mo(Time_bin) | ID) + (1 + mo(Time_bin) | Category))
+    linear_time   = bf(logIntensity ~ 1 +    Time_num  * SA * Activity_type + (1 +    Time_num  | ID) + (1 +    Time_num  | Category)),
+    discrete_time = bf(logIntensity ~ 1 +    Time_bin  * SA * Activity_type + (1 +    Time_num  | ID) + (1 +    Time_num  | Category)),
+    ordered_time  = bf(logIntensity ~ 1 + mo(Time_bin) * SA * Activity_type + (1 + mo(Time_bin) | ID) + (1 + mo(Time_bin) | Category))
   )
 }
 
@@ -179,7 +179,8 @@ fit_regressions <- function(data, priors, formulas) {
       family  = gaussian(link = "identity"),
       prior   = priors,
       data    = data,
-      seed    = 87542
+      seed    = 87542,
+      file    = paste0("models/", i)
     )
   )
 }
@@ -189,14 +190,14 @@ fit_regressions <- function(data, priors, formulas) {
 #'
 #' @description
 #' Applies \pkg{loo}'s [loo::loo()] to the three fitted models produced by
-#' [fit_regressions()] (`linear_time`, `reverse_time`, and `ordered_time`) to
+#' [fit_regressions()] (`linear_time`, `discrete_time`, and `ordered_time`) to
 #' compute Pareto-smoothed importance-sampling leave-one-out (PSIS-LOO)
 #' estimates and rank the models by their expected log predictive density
 #' (ELPD).
 #'
 #' @param fits A named list of `brmsfit` objects as returned by
 #'   [fit_regressions()], expected to contain at minimum the elements
-#'   `linear_time`, `reverse_time`, and `ordered_time`.
+#'   `linear_time`, `discrete_time`, and `ordered_time`.
 #'
 #' @return A `loolist` comparison object as returned by [loo::loo()].
 #'
@@ -206,7 +207,7 @@ fit_regressions <- function(data, priors, formulas) {
 #'
 #' @export
 psis_loo <- function(fits) {
-  with(fits, loo(linear_time, reverse_time, ordered_time))
+  with(fits, loo(linear_time, discrete_time, ordered_time))
 }
 
 
@@ -234,7 +235,7 @@ psis_loo <- function(fits) {
 #' @export
 add_ppc_categories <- function(data) {
   mutate(
-    data            = data,
+    data,
     Type_Season_Time = paste(Activity_type, Seasonal, Time_bin, sep = "_"),
     SA_Type_Time     = paste(SA, Activity_type, Time_bin, sep = "_"),
     SA_Season_Time   = paste(SA, Seasonal, Time_bin, sep = "_")
@@ -253,7 +254,7 @@ add_ppc_categories <- function(data) {
 #'   \item{`sd`}{Grouped statistic plot for the standard deviation.}
 #' }
 #' Plots are produced via [ppc_plot()] and, when `save = TRUE`, written as
-#' 300 dpi JPEG files to `"_figures/"` (created automatically if absent).
+#' 300 dpi JPEG files to `"figures/"` (created automatically if absent).
 #'
 #' @param fits A named list of `brmsfit` objects as returned by
 #'   [fit_regressions()].
@@ -261,7 +262,7 @@ add_ppc_categories <- function(data) {
 #'   categories added via [add_ppc_categories()]), containing `logIntensity`
 #'   and `SA_Type_Time`.
 #' @param save Logical. If `TRUE` (default), each plot is saved to
-#'   `"_figures/ppc_<stat>_<model>.jpg"`.
+#'   `"figures/ppc_<stat>_<model>.jpg"`.
 #'
 #' @return A nested named list: outer names are model names (from `fits`),
 #'   inner names are `"dens"`, `"mean"`, and `"sd"`. Each leaf is a `ggplot`
@@ -314,9 +315,9 @@ perform_posterior_checks <- function(fits, data, save = TRUE) {
 
         # optionally save
         if (save) {
-          new_folder("_figures")
+          new_folder("figures")
           ggsave(
-            filename = here("_figures", paste0("ppc_", f, "_", y, ".jpg")),
+            filename = here("figures", paste0("ppc_", f, "_", y, ".jpg")),
             plot     = plt,
             dpi      = 300,
             width    = 12.6,
@@ -570,7 +571,7 @@ compute_posterior_expectations <- function(data, fit, output = "expectations") {
 #' @param text Logical. If `TRUE`, adds a title and subtitle to the combined
 #'   plot via [patchwork::plot_annotation()]. Defaults to `FALSE`.
 #' @param save Logical. If `TRUE` (default), saves the combined plot to
-#'   `"_figures/conditional_means_<scale>_scale.jpg"` at 300 dpi.
+#'   `"figures/conditional_means_<scale>_scale.jpg"` at 300 dpi.
 #'
 #' @return A named list with elements `"log"` and `"back-transformed raw"`,
 #'   each a `patchwork` object (or `NULL` if plotting failed). Called
@@ -669,13 +670,13 @@ draw_interaction_plots <- function(posterior_expect, text = FALSE, save = TRUE) 
           )
       }
 
-      new_folder("_figures")
+      new_folder("figures")
       fn <- paste0("conditional_means_", gsub("-| ", "_", i), "_scale.jpg")
 
       if (save) {
         ggsave(
           plot     = last_plot(),
-          filename = here("_figures", fn),
+          filename = here("figures", fn),
           dpi      = 300,
           width    = 12.6,
           height   = 8.31

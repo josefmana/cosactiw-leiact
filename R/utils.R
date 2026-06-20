@@ -1,3 +1,5 @@
+# ── Formatting helpers ──────────────────────────────────────────────────────────
+
 #' Create a directory if it does not already exist
 #'
 #' @description
@@ -98,7 +100,7 @@ zerolead <- function(x, d = 3) {
 }
 
 
-#' Format a p-value for reporting
+#' Format a p-value for APA reporting
 #'
 #' @description
 #' Converts a raw p-value to an APA-style string. Values below `.001` are
@@ -127,6 +129,41 @@ pprint <- function(p, dec = 3, text = FALSE) {
     yes  = ifelse(p < .001, "< .001", paste0("= ", zerolead(p, dec))),
     no   = ifelse(p < .001, "< .001",              zerolead(p, dec))
   )
+}
+
+
+#' Format a Wilcoxon test result as an APA string
+#'
+#' @description
+#' Takes the list returned by [stats::wilcox.test()] and produces a
+#' compact APA-style string of the form `"W = <statistic>, p <p-value>"`.
+#' P-values below `.001` are shown as `"< .001"`; others are stripped of
+#' their leading zero and prefixed with `"= "`.
+#'
+#' @param w A list as returned by [stats::wilcox.test()], containing at
+#'   minimum the elements `statistic` (numeric) and `p.value` (numeric).
+#'
+#' @return A length-one character string, e.g. `"W = 312, p = .043"` or
+#'   `"W = 312, p < .001"`.
+#'
+#' @seealso [wtest()], [stats::wilcox.test()]
+#'
+#' @examples
+#' \dontrun{
+#' w <- wilcox.test(rnorm(20), rnorm(20))
+#' w_test(w)
+#' }
+#'
+#' @importFrom stringr str_remove
+#'
+#' @export
+w_test <- function(w) {
+  ptext <- if (w$p.value < 0.001) {
+    "< .001"
+  } else {
+    paste0("= ", round(w$p.value, 3) |> stringr::str_remove("^0"))
+  }
+  paste0("W = ", w$statistic, ", p ", ptext)
 }
 
 
@@ -211,6 +248,225 @@ ubound <- function(x, dec = 2) {
 capitalise <- function(x) {
   substr(x, 1, 1) <- toupper(substr(x, 1, 1))
   x
+}
+
+
+# ── Descriptive statistics ──────────────────────────────────────────────────────
+
+#' Compute common descriptive statistics for a numeric variable
+#'
+#' @description
+#' Computes n (non-missing), mean, SD, median, minimum, and maximum for a
+#' single numeric column, respecting any upstream [dplyr::group_by()] grouping.
+#' Uses tidy evaluation so the column name can be passed unquoted.
+#'
+#' @param df A data frame (optionally grouped).
+#' @param x \<[`tidy-eval`][dplyr::dplyr_data_masking]\> Unquoted name of the
+#'   numeric column to summarise.
+#'
+#' @return A one-row tibble (per group) with columns `n`, `mean`, `sd`,
+#'   `median`, `min`, and `max`.
+#'
+#' @importFrom dplyr summarise
+#' @importFrom rlang enquo `!!`
+#'
+#' @seealso [npc()], [cenvar()]
+#'
+#' @examples
+#' \dontrun{
+#' msm(mtcars, mpg)
+#'
+#' mtcars |>
+#'   dplyr::group_by(cyl) |>
+#'   msm(mpg)
+#' }
+#'
+#' @export
+msm <- function(df, x) {
+  x <- enquo(x)
+  df |>
+    summarise(
+      n      = sum(!is.na(!!x)),
+      mean   = mean(!!x,   na.rm = TRUE),
+      sd     = sd(!!x,     na.rm = TRUE),
+      median = median(!!x, na.rm = TRUE),
+      min    = min(!!x,    na.rm = TRUE),
+      max    = max(!!x,    na.rm = TRUE)
+    )
+}
+
+
+#' Count and percentage summary for a binary (0/1) variable
+#'
+#' @description
+#' For a binary numeric or logical column, returns the total non-missing
+#' count (`n`), the count of `1`s / `TRUE`s (`n_ano`), the count of `0`s /
+#' `FALSE`s (`n_ne`), and the corresponding percentages. Respects upstream
+#' [dplyr::group_by()] grouping. Uses tidy evaluation so the column name can
+#' be passed unquoted.
+#'
+#' @param df A data frame (optionally grouped).
+#' @param x \<[`tidy-eval`][dplyr::dplyr_data_masking]\> Unquoted name of the
+#'   binary column (0/1 integer or logical) to summarise.
+#'
+#' @return A one-row tibble (per group) with columns:
+#'   \describe{
+#'     \item{`n`}{Total non-missing observations.}
+#'     \item{`n_ano`}{Count of positive (1 / TRUE) observations.}
+#'     \item{`n_ne`}{Count of negative (0 / FALSE) observations.}
+#'     \item{`pc_ano`}{Percentage positive (0–100).}
+#'     \item{`pc_ne`}{Percentage negative (0–100).}
+#'   }
+#'
+#' @importFrom dplyr summarise
+#' @importFrom rlang enquo `!!`
+#'
+#' @seealso [msm()]
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(frag = c(0, 1, 1, 0, 1))
+#' npc(df, frag)
+#' }
+#'
+#' @export
+npc <- function(df, x) {
+  x <- enquo(x)
+  df |>
+    summarise(
+      n      = sum(!is.na(!!x)),
+      n_ano  = sum(!!x,           na.rm = TRUE),
+      n_ne   = n - sum(!!x,       na.rm = TRUE),
+      pc_ano = mean(!!x,          na.rm = TRUE) * 100,
+      pc_ne  = mean(1 - !!x,      na.rm = TRUE) * 100
+    )
+}
+
+
+# ── Inferential statistics ──────────────────────────────────────────────────────
+
+#' Run an APA-formatted independent-samples t-test
+#'
+#' @description
+#' Splits `df` by `group`, extracts the two groups' values of column `x`, and
+#' passes them to [apa::t_test()] / [apa::t_apa()] to obtain a formatted
+#' APA result string (e.g. `"t(38) = 2.10, p = .043, d = 0.66 [0.01,
+#' 1.30]"`).
+#'
+#' @param df A data frame containing at least the columns `x` and `group`.
+#' @param x A character string giving the name of the numeric outcome column.
+#' @param group A character string giving the name of the grouping column.
+#'   Must have exactly two distinct values. Defaults to `"frag"`.
+#'
+#' @return A character string with the APA-formatted t-test result, as
+#'   produced by [apa::t_apa()].
+#'
+#' @importFrom dplyr pull
+#'
+#' @seealso [wtest()], [w_test()], [apa::t_apa()]
+#'
+#' @examples
+#' \dontrun{
+#' ttest(df = my_data, x = "score", group = "condition")
+#' }
+#'
+#' @export
+ttest <- function(df, x, group = "frag") {
+  gvals <- sort(unique(df[[group]]))
+  stopifnot(length(gvals) == 2)
+  g1 <- df[df[[group]] == gvals[1], x] |> pull()
+  g2 <- df[df[[group]] == gvals[2], x] |> pull()
+  apa::t_apa(apa::t_test(g1, g2))
+}
+
+
+#' Run an independent-samples Wilcoxon rank-sum test
+#'
+#' @description
+#' Splits `df` by `group`, extracts the two groups' values of column `x`, and
+#' passes them to [stats::wilcox.test()]. Use [w_test()] to format the
+#' returned object as an APA string.
+#'
+#' @param df A data frame containing at least the columns `x` and `group`.
+#' @param x A character string giving the name of the numeric outcome column.
+#' @param group A character string giving the name of the grouping column.
+#'   Must have exactly two distinct values. Defaults to `"frag"`.
+#'
+#' @return An object of class `htest` as returned by [stats::wilcox.test()].
+#'
+#' @importFrom dplyr pull
+#'
+#' @seealso [w_test()], [ttest()], [stats::wilcox.test()]
+#'
+#' @examples
+#' \dontrun{
+#' w <- wtest(df = my_data, x = "score", group = "condition")
+#' w_test(w)
+#' }
+#'
+#' @export
+wtest <- function(df, x, group = "frag") {
+  gvals <- sort(unique(df[[group]]))
+  stopifnot(length(gvals) == 2)
+  g1 <- df[df[[group]] == gvals[1], x] |> pull()
+  g2 <- df[df[[group]] == gvals[2], x] |> pull()
+  wilcox.test(g1, g2)
+}
+
+
+# ── ggplot2 themes & tables ─────────────────────────────────────────────────────
+
+#' APA-style ggplot2 theme
+#'
+#' @description
+#' A [ggplot2::theme()] add-on that approximates APA 7th-edition figure
+#' formatting: no background grid, solid axis lines, bold axis titles, and a
+#' legend with a black border. Designed to be layered on top of
+#' [ggplot2::theme_minimal()].
+#'
+#' @details
+#' Theme adapted from
+#' <https://ggplot2tutor.com/tutorials/apa_theme_rprofile>.
+#'
+#' @return A [ggplot2::theme()] object.
+#'
+#' @importFrom ggplot2 theme element_rect element_text element_line
+#'   element_blank unit margin
+#'
+#' @seealso [ggplot2::theme_minimal()], [gt_apa()]
+#'
+#' @examples
+#' \dontrun{
+#' tibble(x = 1:10, y = 1:10) |>
+#'   ggplot(aes(x = x, y = y)) +
+#'   geom_point() +
+#'   theme_minimal(base_size = 18) +
+#'   apa_theme()
+#' }
+#'
+#' @export
+apa_theme <- function() {
+  ggplot2::theme(
+    plot.margin          = ggplot2::unit(c(1, 1, 1, 1), "cm"),
+    plot.background      = ggplot2::element_rect(fill = "white", color = NA),
+    plot.title           = ggplot2::element_text(
+      size   = 22, face = "bold",
+      hjust  = 0.5,
+      margin = ggplot2::margin(b = 15)
+    ),
+    axis.line            = ggplot2::element_line(color = "black", linewidth = .5),
+    axis.title           = ggplot2::element_text(size = 18, color = "black", face = "bold"),
+    axis.text            = ggplot2::element_text(size = 15, color = "black"),
+    axis.text.x          = ggplot2::element_text(margin = ggplot2::margin(t = 10)),
+    axis.title.y         = ggplot2::element_text(margin = ggplot2::margin(r = 10)),
+    axis.ticks           = ggplot2::element_line(linewidth = .5),
+    panel.grid           = ggplot2::element_blank(),
+    legend.position.inside = c(0.20, 0.8),
+    legend.background    = ggplot2::element_rect(color = "black"),
+    legend.text          = ggplot2::element_text(size = 15),
+    legend.margin        = ggplot2::margin(t = 5, l = 5, r = 5, b = 5),
+    legend.key           = ggplot2::element_rect(color = NA, fill = NA)
+  )
 }
 
 
@@ -302,7 +558,7 @@ ppc_plot <- function(
 #' @importFrom gt gt tab_options px pct cols_align tab_style cell_borders
 #'   cell_text cell_fill cells_body tab_header html opt_align_table_header
 #'
-#' @seealso [gt::gt()], [gt::tab_options()]
+#' @seealso [gt::gt()], [gt::tab_options()], [apa_theme()]
 #'
 #' @examples
 #' \dontrun{
@@ -344,3 +600,4 @@ gt_apa <- function(x, grp = NULL, nms = NULL, title = " ") {
     tab_header(title = html(title)) %>%
     opt_align_table_header(align = "left")
 }
+

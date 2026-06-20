@@ -169,11 +169,9 @@ list(
   ),
 
   # REPORT ----
-  #tar_quarto(
-  #  path  = "report.qmd",
-  #  name  = report,
-  #  quiet = F
-  #),
-
-  NULL
+  tar_quarto(
+    path  = "report.qmd",
+    name  = report,
+    quiet = FALSE
+  )
 )
