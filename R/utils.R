@@ -1,4 +1,4 @@
-# ── Formatting helpers ──────────────────────────────────────────────────────────
+# ── Formatting helpers ────────────────────────────────────────────────────────
 
 #' Create a directory if it does not already exist
 #'
@@ -251,7 +251,7 @@ capitalise <- function(x) {
 }
 
 
-# ── Descriptive statistics ──────────────────────────────────────────────────────
+# ── Descriptive statistics ────────────────────────────────────────────────────
 
 #' Compute common descriptive statistics for a numeric variable
 #'
@@ -343,7 +343,7 @@ npc <- function(df, x) {
 }
 
 
-# ── Inferential statistics ──────────────────────────────────────────────────────
+# ── Inferential statistics ────────────────────────────────────────────────────
 
 #' Run an APA-formatted independent-samples t-test
 #'
@@ -414,7 +414,7 @@ wtest <- function(df, x, group = "frag") {
 }
 
 
-# ── ggplot2 themes & tables ─────────────────────────────────────────────────────
+# ── ggplot2 themes & tables ───────────────────────────────────────────────────
 
 #' APA-style ggplot2 theme
 #'
@@ -600,4 +600,3 @@ gt_apa <- function(x, grp = NULL, nms = NULL, title = " ") {
     tab_header(title = html(title)) %>%
     opt_align_table_header(align = "left")
 }
-
