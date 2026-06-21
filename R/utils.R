@@ -600,3 +600,43 @@ gt_apa <- function(x, grp = NULL, nms = NULL, title = " ") {
     tab_header(title = html(title)) %>%
     opt_align_table_header(align = "left")
 }
+
+
+#' Format a regression coefficient with its confidence interval
+#'
+#' @description
+#' Produces a compact string of the form
+#' `"<estimate><infix>[<lower>; <upper>]"` from a length-3 numeric vector
+#' `c(estimate, bound_a, bound_b)`. The two bounds are sorted so the lower
+#' bound always appears first, making the function robust to the order in
+#' which `confint()` returns columns.
+#'
+#' Typical usage is to negate the SuperAger row of a coefficient matrix to
+#' report the *non-SuperAger vs SuperAger* direction, e.g.
+#' `-cbind(coef(m), confint(m))[2, ] |> rndci(infix = ", 95%% CI ")`.
+#'
+#' @param x A numeric vector of length ≥ 3: `x[1]` is the point estimate,
+#'   `x[2]` and `x[3]` are the two confidence-interval bounds (order does
+#'   not matter).
+#' @param n A single non-negative integer giving the number of decimal places.
+#'   Defaults to `1`.
+#' @param infix A character string inserted between the point estimate and the
+#'   opening bracket of the interval. Useful for adding a label such as
+#'   `", 95%% CI "`. Defaults to `""`.
+#'
+#' @return A length-one character string.
+#'
+#' @seealso [rprint()], [ciprint()]
+#'
+#' @examples
+#' rndci(c(1.23, 0.45, 2.01))               # "1.2[0.5; 2.0]"
+#' rndci(c(1.23, 0.45, 2.01), infix = " ")  # "1.2 [0.5; 2.0]"
+#' rndci(c(-0.5, -1.2, 0.2), n = 2)         # "-0.50[-1.20; 0.20]"
+#'
+#' @export
+rndci <- function(x, n = 1, infix = "") {
+  bounds <- sort(x[2:3])
+  fmt    <- paste0("%.", n, "f")
+  sprintf(paste0(fmt, infix, "[", fmt, "; ", fmt, "]"),
+          x[1], bounds[1], bounds[2])
+}

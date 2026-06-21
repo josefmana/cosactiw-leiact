@@ -1,0 +1,12 @@
+# APA-quarto folder
+/_extensions
+
+# Rendered documents
+*.pdf
+*.html
+*.docx
+
+# Accompanying files
+/report_files
+*.fff
+*.ttt

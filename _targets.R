@@ -5,14 +5,18 @@ library(tarchetypes)
 tar_option_set(packages = c(
   "here",        # path listing
   "tidyverse",   # data wrangling
+  "rlang",       # tidy evaluation
   "openxlsx",    # data reading
+  "apa",         # APA-formatted output
   "effsize",     # effect sizes
   "rcompanion",  # computation of some effect sizes
   "performance", # model diagnostics
   "brms",        # Bayesian regressions
   "bayestestR",  # ETIs
   "bayesplot",   # plotting
-  "patchwork"    # arranging plot
+  "patchwork",   # arranging plot
+  "gt",          # APA-formatted tables
+  "gtExtras"     # gt extensions
 ))
 
 # Load functions
@@ -26,5 +30,6 @@ list(
   target_data,
   target_counts,
   target_intensities,
-  tar_quarto(report, "report.qmd", quiet = FALSE)
+  target_cobra,
+  tar_quarto(report, "outputs/report.qmd", quiet = FALSE)
 )
