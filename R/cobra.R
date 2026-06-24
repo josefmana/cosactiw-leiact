@@ -267,7 +267,7 @@ make_cobra_activity_table <- function(cobra_analysis, activity_tests) {
     )
 
   tab |>
-    gt_apa(title = "Average time spent in each activity per week") |>
+    gt_apa(title = "Average number of hours spent in each activity per week") |>
     tab_spanner(label = "Superagers",     columns = SA_mean_sd) |>
     tab_spanner(label = "non-Superagers", columns = nonSA_mean_sd) |>
     fmt_number(columns = c(d, p), decimals = 3) |>
@@ -383,7 +383,7 @@ make_cobra_activity_table_supp <- function(cobra_analysis, activity_tests) {
 
   tab |>
     gt_apa(
-      title = "Average time spent in each activity per week (non-parametric)"
+      title = "Average number of hours spent in each activity per week (non-parametric)"
     ) |>
     tab_spanner(label = "Superagers",     columns = SA_med_range) |>
     tab_spanner(label = "non-Superagers", columns = nonSA_med_range) |>
