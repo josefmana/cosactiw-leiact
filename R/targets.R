@@ -1,5 +1,5 @@
-# --- Read and format data -----------------------------------------------------
-target_data <- list(
+# --- Document data files -----------------------------------------------------
+target_files <- list(
   targets::tar_target(
     name    = mapping_file,
     command = here("data-raw", "COSACTIW_DCERA-aktivity2.xlsx"),
@@ -15,6 +15,25 @@ target_data <- list(
     command = here("data-raw", "info.rds"),
     format  = "file"
   ),
+  targets::tar_target(
+    name    = cobra_a_file,
+    command = here("data-raw", "cobra_a.rds"),
+    format  = "file"
+  ),
+  targets::tar_target(
+    name    = cobra_b_file,
+    command = here("data-raw", "cobra_b_who.rds"),
+    format  = "file"
+  ),
+  targets::tar_target(
+    name    = vls_file,
+    command = here("data-raw", "vls.rds"),
+    format  = "file"
+  )
+)
+
+# --- Read and format data -----------------------------------------------------
+target_data <- list(
   targets::tar_target(
     name    = data_long,
     command = get_data(
@@ -34,10 +53,33 @@ target_data <- list(
   targets::tar_target(
     name    = ppc_data,
     command = add_ppc_categories(preprocessed_data)
+  ),
+  targets::tar_target(
+    name    = info_data,
+    command = readRDS(sa_file)
+  ),
+  targets::tar_target(
+    name    = cobra_a,
+    command = readRDS(cobra_a_file)
+  ),
+  targets::tar_target(
+    name    = cobra_b,
+    command = readRDS(cobra_b_file)
+  ),
+  targets::tar_target(
+    name    = vls,
+    command = readRDS(vls_file)
+  ),
+  targets::tar_target(
+    name    = cobra_analysis,
+    command = build_cobra_analysis_data(
+      cobra_a = cobra_a,
+      info    = info_data
+    )
   )
 )
 
-# --- Analyse activity counts --------------------------------------------------
+# --- Analyse RETROS activity counts -------------------------------------------
 target_counts <- list(
   targets::tar_target(
     name    = N,
@@ -57,6 +99,13 @@ target_counts <- list(
   targets::tar_target(
     name    = counts_comparisons_table,
     command = add_comparisons(
+      table = activity_counts,
+      data  = data_wide
+    )
+  ),
+  targets::tar_target(
+    name    = counts_comparisons_table_supp,
+    command = add_comparisons_supp(
       table = activity_counts,
       data  = data_wide
     )
@@ -97,7 +146,7 @@ target_counts <- list(
   )
 )
 
-# --- Analyse activity intensities ---------------------------------------------
+# --- Analyse RETROS activity intensities --------------------------------------
 target_intensities <- list(
   targets::tar_target(
     name    = priors,
@@ -155,51 +204,6 @@ target_intensities <- list(
 
 # --- Analyse COBRA-A, physical activity, and social activity ------------------
 target_cobra <- list(
-
-  # ── File references ──────────────────────────────────────────────────────────
-  targets::tar_target(
-    name    = cobra_a_file,
-    command = here("data-raw", "cobra_a.rds"),
-    format  = "file"
-  ),
-  targets::tar_target(
-    name    = cobra_b_file,
-    command = here("data-raw", "cobra_b_who.rds"),
-    format  = "file"
-  ),
-  targets::tar_target(
-    name    = vls_file,
-    command = here("data-raw", "vls.rds"),
-    format  = "file"
-  ),
-
-  # ── Read raw data ─────────────────────────────────────────────────────────────
-  # Full info data frame (sa_file already declared in target_data)
-  targets::tar_target(
-    name    = info_data,
-    command = readRDS(sa_file)
-  ),
-  targets::tar_target(
-    name    = cobra_a,
-    command = readRDS(cobra_a_file)
-  ),
-  targets::tar_target(
-    name    = cobra_b,
-    command = readRDS(cobra_b_file)
-  ),
-  targets::tar_target(
-    name    = vls,
-    command = readRDS(vls_file)
-  ),
-
-  # ── COBRA-A mental activity ───────────────────────────────────────────────────
-  targets::tar_target(
-    name    = cobra_analysis,
-    command = build_cobra_analysis_data(
-      cobra_a = cobra_a,
-      info    = info_data
-    )
-  ),
   targets::tar_target(
     name    = cobra_regressions,
     command = fit_cobra_regressions(cobra_analysis$data)
@@ -215,8 +219,13 @@ target_cobra <- list(
       activity_tests = cobra_activity_tests
     )
   ),
-
-  # ── Physical activity (WHO criteria) ──────────────────────────────────────────
+  targets::tar_target(
+    name    = cobra_activity_table_supp,
+    command = make_cobra_activity_table_supp(
+      cobra_analysis = cobra_analysis,
+      activity_tests = cobra_activity_tests
+    )
+  ),
   targets::tar_target(
     name    = physical_activity_analysis,
     command = compare_physical_activity(
@@ -224,8 +233,6 @@ target_cobra <- list(
       cobra_b = cobra_b
     )
   ),
-
-  # ── Social activity (VLS-AQL) ─────────────────────────────────────────────────
   targets::tar_target(
     name    = social_activity_analysis,
     command = compare_social_activity(

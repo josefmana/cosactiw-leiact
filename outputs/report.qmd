@@ -118,20 +118,37 @@ activities <- sort(cobra_analysis$activities)
 # rnd(): one-decimal formatting alias for rprint() (used throughout inline text)
 rnd <- \(x, n = 1) rprint(x, d = n)
 # rndci() is sourced from utils.R via tar_source()
+# subtract(): subtracts compenents of a vector of length 2 (for in-text t-test differences)
+subtract <- \(x) x[[1]] - x[[2]]
+
+tt_age <- apa::t_test(dd$age[dd$sa], dd$age[!dd$sa])
+tt_age_diff <- rprint(subtract(tt_age$estimate), 1)
+tt_age_diff_ci <- sprintf(
+  "[%.1f, %.1f]",
+  round(tt_age$conf.int[[1]], 1),
+  round(tt_age$conf.int[[2]], 1)
+)
+
+edu_prop <- table(dd$sa, dd$edu2) |> prop.table(margin = 1)
 ```
 
-Based on our criteria, `r sum(info_data$sa)` participants were classified as SA (`r (sum(info_data$sa) / nrow(info_data) * 100) |> rnd()`%) and `r sum(!info_data$sa)` participants as non-SA (`r (sum(!info_data$sa) / nrow(info_data) * 100) |> rnd()`%). The data of one participant were incomplete. SuperAgers were slightly younger than the non-SuperAgers (`r mean(dd$age[dd$sa]) |> rnd()` vs `r mean(dd$age[!dd$sa]) |> rnd()`;  `r apa::t_test(dd$age[dd$sa], dd$age[!dd$sa]) |> apa::t_apa(print = FALSE, format = "rmarkdown")`), and being an SA was not associated with education level  (`r table(dd$sa, dd$edu2) |> chisq.test() |> apa::chisq_apa(print = FALSE, format = "rmarkdown")`). 
+Based on our criteria, `r sum(info_data$sa)` participants were classified as SA (`r (sum(info_data$sa) / nrow(info_data) * 100) |> rnd()`%) and `r sum(!info_data$sa)` participants as non-SA (`r (sum(!info_data$sa) / nrow(info_data) * 100) |> rnd()`%). The data of one participant were incomplete. SuperAgers were slightly younger than the non-SuperAgers (`r mean(dd$age[dd$sa]) |> rnd()` vs `r mean(dd$age[!dd$sa]) |> rnd()`, mean difference = `r tt_age_diff` years, 95% CI `r tt_age_diff_ci`; `r tt_age |> apa::t_apa(print = FALSE, format = "rmarkdown")`), and being an SA was not associated with education level (`r rprint(100 * edu_prop[1, 2], 1)`% vs `r rprint(100 * edu_prop[2, 2], 1)`% higher education in SA vs non-SA respectively; `r table(dd$sa, dd$edu2) |> chisq.test() |> apa::chisq_apa(print = FALSE, format = "rmarkdown")`). 
 
 ## Leisure activities
 
 ```{r}
 #| label: counts-results
 
-la_counts <- tar_read(counts_comparisons_table, store = upstore)
-la_regres <- tar_read(counts_regressions_table, store = upstore)
+la_counts <- tar_read(counts_comparisons_table,      store = upstore)
+la_supp   <- tar_read(counts_comparisons_table_supp, store = upstore)
+la_regres <- tar_read(counts_regressions_table,      store = upstore)
 
 tar_load(chisquares, store = upstore)
 tar_load(cross_tables, store = upstore)
+
+fmt_msd <- function(x) {
+  sub(")", "", sub("(", "\u00b1 ", x, fixed = TRUE), fixed = TRUE)
+}
 
 beta <- sub(
   pattern     = "-",
@@ -152,7 +169,7 @@ beta_CI <- paste0(
 
 ```
 
-**Counts of activity types.** Counts of activities per participant in SA and non-SA group and their comparison are presented in @tbl-la-counts. No tested null hypothesis was rejected. The only notable pattern was relatively higher number of self-reported activities from the "flexibility and mind-body exercise" activity type by SA (`r with(la_counts, SA[category == 'flexibility_health_exercise'])`) compared to non-SA (`r with(la_counts, nonSA[category == 'flexibility_health_exercise'])`) participants (*t*(`r with(la_counts, df[category == 'flexibility_health_exercise'])`) = `r with(la_counts, t_stat[category == 'flexibility_health_exercise'])`, d = `r with(la_counts, cohens_d[category == 'flexibility_health_exercise'])`). Similar results were observed in the regression analyses whereby after adjusting for age and education, SA participants were expected to report `r beta` (95% CI `r beta_CI`) activities more than non-SA participants (see @tbl-la-regres).
+**Counts of activity types.** Counts of activities per participant in SA and non-SA group and their comparison are presented in @tbl-la-counts (see @tbl-la-counts-supp for non-parametric statistics). No tested null hypothesis was rejected. The only notable pattern was relatively higher number of self-reported activities from the "flexibility and mind-body exercise" activity type by SA (`r fmt_msd(with(la_counts, SA[category == 'flexibility_health_exercise']))`) compared to non-SA (`r fmt_msd(with(la_counts, nonSA[category == 'flexibility_health_exercise']))`) participants (*t*(`r with(la_counts, df[category == 'flexibility_health_exercise'])`) = `r with(la_counts, t[category == 'flexibility_health_exercise'])`, *p* = `r with(la_counts, p[category == 'flexibility_health_exercise'])`, *d* = `r with(la_counts, cohens_d[category == 'flexibility_health_exercise'])`). Similar results were observed in the regression analyses whereby after adjusting for age and education, SA participants were expected to report `r beta` (95% CI `r beta_CI`) activities more than non-SA participants (see @tbl-la-regres).
 
 ```{r}
 #| label: tbl-la-counts
@@ -165,40 +182,23 @@ la_counts |>
       .fns = \(x) if_else(nonSA == "-" | SA == "-", "-", x)
     )
   ) |>
+  select(-t, -df) |>
   gt_apa(
     grp = "type",
     title = "Description and statistical comparison of activity counts in SA and non-SA groups"
   ) |>
-  tab_spanner(
-    columns = ends_with("SA"),
-    label = "Descriptive statistics",
-    gather = FALSE
-  ) |>
-  tab_spanner(
-    columns = all_of(c("cohens_d","t_stat","df","p_ttest")),
-    label = "t-test",
-    gather = FALSE
-  ) |>
-  tab_spanner(
-    columns = all_of(c("VD.A","W","p_mannwhitney")),
-    label = "Mann Whitney U test",
-    gather = FALSE
-  ) |>
-  tab_spanner(
-    columns = !any_of(c("type","category","season","nonSA","SA")),
-    label = "Inferential statistics",
-    gather = FALSE
-  ) |>
+  tab_spanner(columns = "SA",    label = "Superagers") |>
+  tab_spanner(columns = "nonSA", label = "non-Superagers") |>
   cols_label(
-    cohens_d          ~ "Cohen's d",
-    t_stat            ~ "t",
-    starts_with("p_") ~ "p",
-    category          ~ "Activity type",
-    nonSA             ~ "non-SA"
+    category        ~ "Activity type",
+    ends_with("SA") ~ "Mean (SD)",
+    diff_ci         ~ md("Difference [95% CI]"),
+    cohens_d        ~ md("*d*"),
+    p               ~ md("*p*")
   )
 ```
 
-**Number of participants reporting an activity.** The overall distribution of the number of participants engaging in at least one activity from each activity type is presented in @tbl-la-nums. Based on the data, the null hypothesis of activity type and SA status independence was not rejected for either physical ($\chi^2$(`r chisquares['physical', 'df']`) = `r chisquares['physical', 'chisq']`, p = `r chisquares['physical', 'p']`, Cramér's V = `r chisquares['physical', 'cramer_v']`) or mental ($\chi^2$(`r chisquares['mental', 'df']`) = `r chisquares['mental', 'chisq']`, p = `r chisquares['mental', 'p']`, Cramér's V = `r chisquares['mental', 'cramer_v']`) activities.
+**Number of participants reporting an activity.** The overall distribution of the number of participants engaging in at least one activity from each activity type is presented in @tbl-la-nums. Based on the data, the null hypothesis of activity type and SA status independence was not rejected for either physical ($\chi^2$(`r chisquares['physical', 'df']`) = `r chisquares['physical', 'chisq']`, *p* = `r chisquares['physical', 'p']`, Cramér's *V* = `r chisquares['physical', 'cramer_v']`) or mental ($\chi^2$(`r chisquares['mental', 'df']`) = `r chisquares['mental', 'chisq']`, *p* = `r chisquares['mental', 'p']`, Cramér's *V* = `r chisquares['mental', 'cramer_v']`) activities.
 
 ```{r}
 #| label: tbl-la-nums
@@ -217,8 +217,8 @@ cross_tables |>
   ) |>
   cols_label(
     Category ~ "Activity type",
-    SA_perc ~ "SA",
-    nonSA_perc ~ "non-SA"
+    SA_perc ~ "Superagers",
+    nonSA_perc ~ "non-Superagers"
   )
 ```
 
@@ -239,9 +239,9 @@ rhatmax <- ubound(max(brms::rhat(fit)), 3)
 
 **Mental activities.** From the proposed list of eight mental activities, the participants reported on average being involved in `r mean(dd$n_activity) |> rnd()` (SD = `r sd(dd$n_activity) |> rnd()`, median = `r median(dd$n_activity) |> rnd()`). On average, they spent `r mean(dd$total_hours_per_week) |> rnd()` hours in these activities (SD = `r sd(dd$total_hours_per_week) |> rnd()`, median = `r median(dd$total_hours_per_week) |> rnd()`). Combining individual activities with their reported weekly frequency, we calculated how many times participants were involved in the selected mental activities on a weekly basis. On average, they reported `r mean(dd$total_times_per_week) |> rnd()` occasions in these activities (SD = `r sd(dd$total_times_per_week) |> rnd()`, median = `r median(dd$total_times_per_week) |> rnd()`).
 
-SuperAgers reported a slightly larger number of activities (`r mean(dd$n_activity[dd$sa]) |> rnd()` vs `r mean(dd$n_activity[!dd$sa]) |> rnd()`; `r apa::t_test(dd$n_activity[dd$sa], dd$n_activity[!dd$sa]) |> apa::t_apa(print = FALSE, format = "rmarkdown")`). They did not differ in the number of hours spent in these activities (`r mean(dd$total_hours_per_week[dd$sa]) |> rnd()` vs `r mean(dd$total_hours_per_week[!dd$sa]) |> rnd()`; `r apa::t_test(dd$total_hours_per_week[dd$sa], dd$total_hours_per_week[!dd$sa]) |> apa::t_apa(print = FALSE, format = "rmarkdown")`) or the number of weekly occasions (`r mean(dd$total_times_per_week[dd$sa]) |> rnd()` vs `r mean(dd$total_times_per_week[!dd$sa]) |> rnd()`; `r apa::t_test(dd$total_times_per_week[dd$sa], dd$total_times_per_week[!dd$sa]) |> apa::t_apa(print = FALSE, format = "rmarkdown")`). To account for the potential effect of age and education, we used regression models with age and education. This analysis confirmed a significant difference between SA and non-SA in the number of activities (by `r -cobra_regressions$coef_n_activity["safnon-Superager",] |> rndci(infix = ", 95%% CI ")`), no difference in total time (by `r -cobra_regressions$coef_hours["safnon-Superager",] |> rndci(infix = " ")`). The number of weekly occasions reached significance when corrected for the effect of age and education (by `r -cobra_regressions$coef_times["safnon-Superager",] |> rndci(infix = " ")`).
+SuperAgers reported a slightly larger number of activities (`r mean(dd$n_activity[dd$sa]) |> rnd()` vs `r mean(dd$n_activity[!dd$sa]) |> rnd()`; `r apa::t_test(dd$n_activity[dd$sa], dd$n_activity[!dd$sa]) |> apa::t_apa(print = FALSE, format = "rmarkdown")`). They did not differ in the number of hours spent in these activities (`r mean(dd$total_hours_per_week[dd$sa]) |> rnd()` vs `r mean(dd$total_hours_per_week[!dd$sa]) |> rnd()`; `r apa::t_test(dd$total_hours_per_week[dd$sa], dd$total_hours_per_week[!dd$sa]) |> apa::t_apa(print = FALSE, format = "rmarkdown")`) or the number of weekly occasions (`r mean(dd$total_times_per_week[dd$sa]) |> rnd()` vs `r mean(dd$total_times_per_week[!dd$sa]) |> rnd()`; `r apa::t_test(dd$total_times_per_week[dd$sa], dd$total_times_per_week[!dd$sa]) |> apa::t_apa(print = FALSE, format = "rmarkdown")`). To account for the potential effect of age and education, we used regression models with age and education as covariates. This analysis confirmed a significant difference between SA and non-SA in the number of activities (by `r -cobra_regressions$coef_n_activity["safnon-Superager",] |> rndci(infix = ", 95%% CI ")`), no difference in total time (by `r -cobra_regressions$coef_hours["safnon-Superager",] |> rndci(infix = " ")`). The number of weekly occasions reached significance when corrected for the effect of age and education (by `r -cobra_regressions$coef_times["safnon-Superager",] |> rndci(infix = " ")`).
 
-As an exploratory analysis, we compared the involvement in individual activities using a series of *t*-tests. The only notable pattern was a non-significant preference for card- and board games (`r cobra_activity_tests[[activities[4]]] |> apa::t_apa(print = FALSE, format = "rmarkdown")`; other uncorrected p-values > .300). The average time spent in each activity per week is summarised in @tbl-cobra-activity.
+As an exploratory analysis, we compared the involvement in individual activities using a series of *t*-tests. The only notable pattern was a non-significant preference for card- and board games (`r cobra_activity_tests[[activities[4]]] |> apa::t_apa(print = FALSE, format = "rmarkdown")`; other uncorrected p-values > .300). The average time spent in each activity per week is summarised in @tbl-cobra-activity (see @tbl-cobra-supplemental for parallel non-parametric comparisons).
 
 ```{r}
 #| label: tbl-cobra-activity
@@ -258,53 +258,59 @@ tar_read(cobra_activity_table, store = upstore)
 # Appendix
 
 ```{r}
+#| label: tbl-la-counts-supp
+
+la_supp |>
+  mutate(
+    category = if_else(category == "-", "all", category),
+    across(
+      .cols = all_of(names(la_supp)[5:ncol(la_supp)]), # manually select all stats-relating columns
+      .fns = \(x) if_else(SA_med_range == "-" | nonSA_med_range == "-", "-", x)
+    )
+  ) |>
+  gt_apa(
+    grp = "type",
+    title = "Description and statistical comparison of activity counts in SA and non-SA groups (non-parametric)"
+  ) |>
+  tab_spanner(columns = "SA_med_range",    label = "Superagers") |>
+  tab_spanner(columns = "nonSA_med_range", label = "non-Superagers") |>
+  cols_label(
+    category       ~ "Activity type",
+    contains("SA") ~ md("Median (min\u2013max)"),
+    VDA            ~ md("VD.A"),
+    W              ~ md("*W*"),
+    p              ~ md("*p*")
+  )
+```
+
+```{r}
 #| label: tbl-la-regres
 
 la_regres |>
-  mutate(category = if_else(category == "-", "all", category)) |>
+  mutate(
+    `Activity Type`   = if_else(category == "-", "all", category),
+    Intercept         = paste(`b_(Intercept)`,      `CI_(Intercept)`     , sep = " "),
+    SuperAging        = paste(`b_safnon-Superager`, `CI_safnon-Superager`, sep = " "),
+    Age               = paste(b_age,                 CI_age,               sep = " "),
+    `Education level` = paste(b_edu22,               CI_edu22,             sep = " ")
+  ) |>
+  select(
+    type, `Activity Type`,
+    nonSA, SA,
+    Intercept, SuperAging, Age, `Education level`
+  ) |>
   gt_apa(
     grp = "type",
     title = "Regression analysis of activity types as depending on SA status, age and education."
   ) |>
+  tab_spanner(columns = SA,    "Superagers") |>
+  tab_spanner(columns = nonSA, "non-Superagers") |>
   tab_spanner(
-    columns = ends_with("SA"),
-    label = "Descriptive statistics",
+    columns = c(Intercept, SuperAging, Age, `Education level`),
+    label = "Regression parameters (b [95% CI])",
     gather = FALSE
   ) |>
-  tab_spanner(
-    columns = ends_with("(Intercept)"),
-    label = "Intercept",
-    gather = FALSE
-  ) |>
-  tab_spanner(
-    columns = ends_with("Superager"),
-    label = "SuperAging",
-    gather = FALSE
-  ) |>
-  tab_spanner(
-    columns = ends_with("age"),
-    label = "Age",
-    gather = FALSE
-  ) |>
-  tab_spanner(
-    columns = ends_with("edu22"),
-    label = "Education level",
-    gather = FALSE
-  ) |>
-  tab_spanner(
-    columns = contains("_"),
-    label = "Inferential statistics",
-    gather = FALSE
-  ) |>
-  cols_label(
-    starts_with("b_")  ~ md("ß"),
-    starts_with("CI_") ~ "95% CI",
-    starts_with("t_")  ~ "t",
-    starts_with("p_")  ~ "p",
-    category           ~ "Activity type",
-    nonSA              ~ "non-SA"
-  )
-
+  cols_label(ends_with("SA") ~ "Mean (SD)")
 ```
 
 ```{r}
@@ -339,4 +345,10 @@ pwc |>
     contains("Estimate") ~ "Estimate [95% ETI]", 
     contains("pd") ~ "pd"
   )
+```
+
+```{r}
+#| label: tbl-cobra-supplemental
+
+tar_read(cobra_activity_table_supp, store = upstore)
 ```

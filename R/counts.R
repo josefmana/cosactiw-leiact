@@ -249,7 +249,7 @@ count_activities <- function(input, data) {
       function(i) if_else(
         condition = sum(subset(data, SA == i)[, y]) == 0,
         true  = "-",
-        false = cenvar(y = subset(data, SA == i)[, y], dec = 2, cen = "mean", var = "sd", sep = " \u00b1 ")
+        false = paste0(cenvar(y = subset(data, SA == i)[, y], dec = 1, cen = "mean", var = "sd", sep = " ("), ")")
       )
     ) %>%
       t() %>%
@@ -261,7 +261,7 @@ count_activities <- function(input, data) {
       type = sapply(
         seq_len(nrow(.)),
         function(i) case_when(
-          category[i] == "activities"                                                                   ~ "all",
+          category[i] == "activities"                                                                         ~ "all",
           category[i] == "mental"   | category[i] %in% unique(subset(input$map, type == "mental")$category)   ~ "mental",
           category[i] == "physical" | category[i] %in% unique(subset(input$map, type == "physical")$category) ~ "physical"
         )
@@ -276,14 +276,18 @@ count_activities <- function(input, data) {
 }
 
 
-#' Append group-comparison statistics to an activity-count table
+#' Append group-comparison statistics to an activity-count table (main text)
 #'
 #' @description
 #' For each row of a descriptive table produced by [count_activities()],
 #' determines the corresponding outcome variable, runs an independent-samples
-#' *t*-test and a Mann–Whitney *U* test between SuperAging groups, and
-#' appends the resulting statistics (Cohen's *d*, *t*, *df*, *p*, Vargha–
-#' Delaney *A*, *W*, and *p*) as new columns.
+#' *t*-test between SuperAging groups, and appends Cohen's *d*, the raw
+#' mean difference with its 95% CI, and the *p*-value as new columns.
+#'
+#' The difference is in the SA − non-SA direction: positive values indicate
+#' SuperAgers report higher counts.  The formula interface is used throughout,
+#' so group ordering follows R's alphabetical convention (\"SA\" precedes
+#' \"nonSA\", giving estimate[[1]] = mean(SA)).
 #'
 #' @param table A data frame as returned by [count_activities()], with
 #'   columns `type` and `category`.
@@ -294,18 +298,16 @@ count_activities <- function(input, data) {
 #'   columns:
 #'   \describe{
 #'     \item{`cohens_d`}{Formatted Cohen's *d*.}
-#'     \item{`t_stat`}{Formatted *t*-statistic.}
-#'     \item{`df`}{Formatted degrees of freedom.}
+#'     \item{`diff_ci`}{Raw SA − non-SA difference with 95% CI, formatted
+#'       as `\"estimate [lower, upper]\"`.)
 #'     \item{`p_ttest`}{Formatted *t*-test *p*-value.}
-#'     \item{`VD.A`}{Formatted Vargha–Delaney *A*.}
-#'     \item{`W`}{Formatted Mann–Whitney *W*.}
-#'     \item{`p_mannwhitney`}{Formatted Mann–Whitney *p*-value.}
 #'   }
 #'   `NaN` and `NA` values are replaced with `"-"`.
 #'
-#' @importFrom effsize cohen.d VD.A
+#' @importFrom effsize cohen.d
 #'
-#' @seealso [count_activities()], [add_regression_parameters()]
+#' @seealso [count_activities()], [add_comparisons_supp()],
+#'   [add_regression_parameters()]
 #'
 #' @export
 add_comparisons <- function(table, data) {
@@ -322,21 +324,24 @@ add_comparisons <- function(table, data) {
       ))
 
       # parametric test
-      t     <- t.test(as.formula(paste0(v, " ~ SA")), data = data)
-      d     <- cohen.d(as.formula(paste0(v, " ~ SA")), data = data)
+      t <- t.test(as.formula(paste0(v, " ~ SA")), data = data)
+      d <- cohen.d(as.formula(paste0(v, " ~ SA")), data = data)
 
-      # non-parametric test
-      wilcox <- wilcox.test(as.formula(paste0(v, " ~ SA")), data = data)
-      vda    <- VD.A(as.formula(paste0(v, " ~ SA")), data = data)
+      # SA - nonSA difference: "SA" < "nonSA" alphabetically so
+      # estimate[[1]] = mean(SA), estimate[[2]] = mean(nonSA)
+      diff_ci <- sprintf(
+        "%s [%s, %s]",
+        rprint(t$estimate[[1]] - t$estimate[[2]], 1),
+        rprint(t$conf.int[[1]], 1),
+        rprint(t$conf.int[[2]], 1)
+      )
 
       return(c(
-        cohens_d      = rprint(d$estimate),
-        t_stat        = rprint(t$statistic),
-        df            = rprint(t$parameter),
-        p_ttest       = zerolead(t$p.value),
-        VD.A          = rprint(vda$estimate),
-        W             = rprint(wilcox$statistic),
-        p_mannwhitney = pprint(wilcox$p.value, text = FALSE)
+        diff_ci  = diff_ci,
+        cohens_d = rprint(d$estimate, 3),
+        t        = rprint(t$statistic, 2), # keep in for in-text shenaningans
+        df       = rprint(t$parameter, 2), # keep in for in-text shenaningans
+        p        = zerolead(t$p.value, 3)
       ))
     }
   ) %>%
@@ -359,7 +364,114 @@ add_comparisons <- function(table, data) {
 }
 
 
-#' Extract and format regression coefficients from a list of model fits
+#' Append non-parametric comparison statistics to an activity-count table
+#' (appendix)
+#'
+#' @description
+#' Non-parametric counterpart of [add_comparisons()] intended for the
+#' supplementary appendix.  For each row of a descriptive table produced by
+#' [count_activities()], computes the median and range (min–max) for each
+#' SuperAging group, runs a Wilcoxon rank-sum test, and computes the Vargha–
+#' Delaney *A* effect size.
+#'
+#' VD.A is computed in the SA > non-SA direction (values > 0.5 indicate
+#' SuperAgers tend to report higher counts).
+#'
+#' @param table A data frame as returned by [count_activities()], with
+#'   columns `type` and `category`.  Only the structural columns are carried
+#'   forward; descriptive statistics are recomputed from `data`.
+#' @param data A wide-format data frame as returned by [pivot_data()],
+#'   containing the outcome columns and the `SA` column.
+#'
+#' @return A data frame with columns:
+#'   \describe{
+#'     \item{`type`}{Activity domain, recoded to `"Both"`, `"Mental"`, or
+#'       `"Physical"`.}
+#'     \item{`category`}{Activity category, or `"-"` for domain totals.}
+#'     \item{`SA_med_range`}{Formatted median (min–max) for SuperAgers.}
+#'     \item{`nonSA_med_range`}{Formatted median (min–max) for non-SuperAgers.}
+#'     \item{`VDA`}{Formatted Vargha–Delaney *A*.}
+#'     \item{`W`}{Formatted Wilcoxon *W* statistic.}
+#'     \item{`p_mannwhitney`}{Formatted *p*-value.}
+#'   }
+#'   `NaN` and `NA` values are replaced with `"-"`.
+#'
+#' @importFrom effsize VD.A
+#'
+#' @seealso [count_activities()], [add_comparisons()]
+#'
+#' @export
+add_comparisons_supp <- function(table, data) {
+
+  fmt_med_range <- function(x) {
+    sprintf(
+      "%s (%s\u2013%s)",
+      rprint(median(x, na.rm = TRUE), 1),
+      rprint(min(x,    na.rm = TRUE), 0),
+      rprint(max(x,    na.rm = TRUE), 0)
+    )
+  }
+
+  sapply(
+    seq_len(nrow(table)),
+    function(i) {
+
+      # determine the outcome variable for this row
+      v <- with(table, case_when(
+        category[i] == "all" & type[i] == "all" ~ "activities",
+        category[i] == "all"                    ~ type[i],
+        .default                                = category[i]
+      ))
+
+      sa_vals    <- data[[v]][data$SA == "SA"]
+      nonsa_vals <- data[[v]][data$SA == "nonSA"]
+
+      # guard against degenerate (all-zero) rows present in some categories
+      if (sum(sa_vals, na.rm = TRUE) == 0 && sum(nonsa_vals, na.rm = TRUE) == 0) {
+        return(c(
+          SA_med_range    = "-",
+          nonSA_med_range = "-",
+          VDA             = "-",
+          W               = "-",
+          p               = "-"
+        ))
+      }
+
+      wt  <- wilcox.test(sa_vals, nonsa_vals)
+      vda <- VD.A(sa_vals, nonsa_vals)
+
+      return(c(
+        SA_med_range    = fmt_med_range(sa_vals),
+        nonSA_med_range = fmt_med_range(nonsa_vals),
+        VDA             = rprint(vda$estimate, 3),
+        W               = rprint(wt$statistic, 1),
+        p               = pprint(wt$p.value, 3, text = FALSE)
+      ))
+    }
+  ) %>%
+    t() %>%
+    as.data.frame() %>%
+    cbind.data.frame(
+      table %>% select(type, category),  # structural columns only
+      .
+    ) %>%
+    mutate(
+      across(everything(), ~ case_when(
+        grepl("NaN", .x) ~ "-",
+        is.na(.x)        ~ "-",
+        .default = .x
+      )),
+      category = if_else(category == "all", "-", category),
+      type = case_when(
+        type == "all"      ~ "Both",
+        type == "mental"   ~ "Mental",
+        type == "physical" ~ "Physical"
+      )
+    )
+}
+
+
+
 #'
 #' @description
 #' For each model in `fits`, extracts the coefficient estimates, 95%
@@ -389,13 +501,15 @@ extract_parameters <- function(fits, input) {
   sapply(
     names(fits),
     function(y) cbind.data.frame(
-      b  = coefficients(fits[[y]]) %>% rprint(),
+      b  = coefficients(fits[[y]]) %>%
+        rprint(1),
       CI = confint.lm(fits[[y]]) %>%
         as.data.frame() %>%
-        mutate_all(rprint) %>%
+        mutate_all(rprint, 1) %>%
         mutate(CI = paste0("[", `2.5 %`, ", ", `97.5 %`, "]")) %>%
         select(CI),
-      t  = summary(fits[[y]])$coefficients[, "t value"]  %>% rprint(),
+      t  = summary(fits[[y]])$coefficients[, "t value"]  %>%
+        rprint(2),
       p  = summary(fits[[y]])$coefficients[, "Pr(>|t|)"] %>%
         sapply(function(i) pprint(p = i, text = FALSE))
     ) %>%
@@ -409,9 +523,9 @@ extract_parameters <- function(fits, input) {
       type = sapply(
         seq_len(nrow(.)),
         function(i) case_when(
-          y[i] == "activities"                                                                                       ~ "all",
-          y[i] == "mental"   | y[i] %in% unique(with(input, subset(map, type == "mental"  )$category))             ~ "mental",
-          y[i] == "physical" | y[i] %in% unique(with(input, subset(map, type == "physical")$category))             ~ "physical"
+          y[i] == "activities"                                                                         ~ "all",
+          y[i] == "mental"   | y[i] %in% unique(with(input, subset(map, type == "mental"  )$category)) ~ "mental",
+          y[i] == "physical" | y[i] %in% unique(with(input, subset(map, type == "physical")$category)) ~ "physical"
         )
       ),
       category = sapply(
@@ -491,39 +605,48 @@ add_regression_parameters <- function(table, fits, input) {
 #' @export
 contingency_tables <- function(input, data) {
 
-  with(input, data %>%
-         select(SA, all_of(unique(map$category))) %>%
-         mutate(
-           across(
-             .cols = all_of(unique(map$category)),
-             .fns  = ~ if_else(.x > 0, TRUE, FALSE)
-           )
-         ) %>%
-         group_by(SA) %>%
-         summarise_all(list(sum)) %>%
-         column_to_rownames("SA") %>%
-         t() %>%
-         as.data.frame() %>%
-         mutate(
-           Type = unlist(
-             x = sapply(
-               X   = rownames(.),
-               FUN = function(i) with(map, unique(type[category == i]))
-             ),
-             use.names = FALSE
-           ),
-           .before = 1
-         ) %>%
-         rownames_to_column("Category") %>%
-         group_by(Type) %>%
-         mutate(
-           across(
-             .cols  = ends_with("SA"),
-             .fns   = ~ paste0(.x, " (", rprint(100 * .x / sum(.x), 0), "%)"),
-             .names = "{col}_perc"
-           )
-         ) %>%
-         ungroup())
+  with(input, {
+    data %>%
+      select(SA, all_of(unique(map$category))) %>%
+      mutate(across(
+        .cols = all_of(unique(map$category)),
+        .fns  = ~ if_else(.x > 0, TRUE, FALSE)
+      )) %>%
+      group_by(SA) %>%
+      summarise_all(list(N = sum, perc = mean)) %>%
+      column_to_rownames("SA") %>%
+      t() %>%
+      as.data.frame() %>%
+      rownames_to_column("Activity") %>%
+      mutate(
+        Category = sub("_[^_]*$", "", Activity),
+        Quant = sub("^.*_", "", Activity)
+      ) %>%
+      select(-Activity) %>%
+      pivot_wider(
+        names_from = Quant,
+        values_from = c(SA, nonSA)
+      ) %>%
+      mutate(
+        Type = unlist(
+          x = sapply(
+            X   = seq_len(n()),
+            FUN = \(i) with(map, unique(type[category == Category[i]]))
+          ),
+          use.names = FALSE
+        ),
+        SA_perc = paste0(SA_N, " (", rprint(100 * SA_perc, 0), "%)"),
+        nonSA_perc = paste0(nonSA_N, " (", rprint(100 * nonSA_perc, 0), "%)")
+      ) %>%
+      select(
+        Category,
+        Type,
+        SA = SA_N,
+        nonSA = nonSA_N,
+        SA_perc,
+        nonSA_perc
+      )
+  })
 }
 
 

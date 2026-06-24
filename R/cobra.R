@@ -195,7 +195,7 @@ run_cobra_activity_tests <- function(cobra_analysis) {
 }
 
 
-#' Build a per-activity summary table for COBRA-A mental activities
+#' Build a per-activity summary table for COBRA-A mental activities (main text)
 #'
 #' @description
 #' For each activity, computes mean and SD of `hours_per_week` separately for
@@ -204,7 +204,10 @@ run_cobra_activity_tests <- function(cobra_analysis) {
 #' table sorted by decreasing absolute Cohen's *d*.
 #'
 #' Columns are arranged as: Activity | SA Mean (SD) | non-SA Mean (SD) |
-#' *d* | *p*.
+#' Difference [95% CI] | *d* | *p*.
+#'
+#' The raw difference and its 95% CI are computed in the SA − non-SA direction
+#' (positive values indicate SuperAgers spend more time in the activity).
 #'
 #' @param cobra_analysis The named list returned by
 #'   [build_cobra_analysis_data()].
@@ -214,14 +217,14 @@ run_cobra_activity_tests <- function(cobra_analysis) {
 #' @return A `gt_tbl` object.
 #'
 #' @importFrom dplyr left_join filter group_by summarise mutate arrange
-#'   select join_by
+#'   transmute join_by
 #' @importFrom tidyr pivot_wider
 #' @importFrom purrr map map_dbl
 #' @importFrom stringr str_replace_all
-#' @importFrom gt gt fmt_number cols_label tab_spanner tab_footnote md
-#' @importFrom gtExtras cols_merge_n_pct
+#' @importFrom gt fmt_number cols_label tab_spanner tab_footnote md
 #'
-#' @seealso [run_cobra_activity_tests()], [build_cobra_analysis_data()]
+#' @seealso [run_cobra_activity_tests()], [build_cobra_analysis_data()],
+#'   [make_cobra_activity_table_supp()]
 #'
 #' @export
 make_cobra_activity_table <- function(cobra_analysis, activity_tests) {
@@ -236,45 +239,166 @@ make_cobra_activity_table <- function(cobra_analysis, activity_tests) {
     summarise(
       m  = mean(hours_per_week),
       sd = sd(hours_per_week),
-      n  = n(),
       .groups = "drop"
     ) |>
     pivot_wider(
       id_cols     = "activity",
       names_from  = "saf",
-      values_from = c("m", "sd", "n")
+      values_from = c("m", "sd")
     ) |>
     mutate(
-      tt = map(activity, ~ activity_tests[[.x]]),
-      d  = map_dbl(tt, apa::cohens_d),
-      p  = map_dbl(tt, \(x) x$p.value)
+      tt       = map(activity, ~ activity_tests[[.x]]),
+      d        = map_dbl(tt, apa::cohens_d),
+      p        = map_dbl(tt, \(x) x$p.value),
+      # SA - non-SA direction: apa::t_test(SA_vals, nonSA_vals) puts
+      # SA as estimate[[1]] and non-SA as estimate[[2]]
+      diff_val = map_dbl(tt, ~ .x$estimate[[1]] - .x$estimate[[2]]),
+      diff_lo  = map_dbl(tt, ~ .x$conf.int[[1]]),
+      diff_hi  = map_dbl(tt, ~ .x$conf.int[[2]])
     ) |>
-    arrange(-abs(d))
+    arrange(-abs(d)) |>
+    transmute(
+      activity      = str_replace_all(activity, "_", " "),
+      SA_mean_sd    = sprintf("%.1f (%.1f)", `m_Superager`,     `sd_Superager`),
+      nonSA_mean_sd = sprintf("%.1f (%.1f)", `m_non-Superager`, `sd_non-Superager`),
+      diff_ci       = sprintf("%.1f [%.1f, %.1f]", diff_val, diff_lo, diff_hi),
+      d,
+      p
+    )
 
   tab |>
-    select(activity, `m_Superager`, `n_Superager`,
-           `m_non-Superager`, `n_non-Superager`, d, p) |>
-    mutate(activity = str_replace_all(activity, "_", " ")) |>
-    #gt() |>
     gt_apa(title = "Average time spent in each activity per week") |>
-    fmt_number(columns = 2:5, decimals = 1) |>
-    fmt_number(columns = 6,   decimals = 3) |>
-    fmt_number(columns = 7,   decimals = 3) |>
-    cols_merge_n_pct(col_n = 2, col_pct = 3) |>
-    cols_merge_n_pct(col_n = 4, col_pct = 5) |>
-    tab_spanner(label = "Superagers",     columns = 2) |>
-    tab_spanner(label = "non-Superagers", columns = 4) |>
+    tab_spanner(label = "Superagers",     columns = SA_mean_sd) |>
+    tab_spanner(label = "non-Superagers", columns = nonSA_mean_sd) |>
+    fmt_number(columns = c(d, p), decimals = 3) |>
     cols_label(
-      .list = list(
-        "m_Superager"     = "Mean (SD)",
-        "m_non-Superager" = "Mean (SD)",
-        "d"               = md("*d*"),
-        "p"               = md("*p*"),
-        "activity"        = "Activity"
-      )
+      activity      = "Activity",
+      SA_mean_sd    = "Mean (SD)",
+      nonSA_mean_sd = "Mean (SD)",
+      diff_ci       = md("Difference [95% CI]"),
+      d             = md("*d*"),
+      p             = md("*p*")
     ) |>
     tab_footnote(
       "Activities are sorted by decreasing absolute Cohen's d."
+    )
+}
+
+
+#' Build a per-activity summary table for COBRA-A mental activities (appendix)
+#'
+#' @description
+#' Non-parametric counterpart of [make_cobra_activity_table()] intended for
+#' the supplementary appendix.  For each activity, computes the median and
+#' range (min–max) of `hours_per_week` separately for SuperAgers and
+#' non-SuperAgers, runs a Wilcoxon rank-sum test, and computes the Vargha–
+#' Delaney *A* effect size.  The result is formatted as a \pkg{gt} table
+#' sorted in the same order as the main table (decreasing absolute Cohen's
+#' *d*).
+#'
+#' Columns are arranged as: Activity | SA Median (min–max) |
+#' non-SA Median (min–max) | VD.A | *W* | *p*.
+#'
+#' VD.A is computed in the SA > non-SA direction (values > 0.5 indicate
+#' SuperAgers tend to spend more time in the activity).
+#'
+#' @param cobra_analysis The named list returned by
+#'   [build_cobra_analysis_data()].
+#' @param activity_tests A named list of `htest` objects as returned by
+#'   [run_cobra_activity_tests()], used only to determine sort order.
+#'
+#' @return A `gt_tbl` object.
+#'
+#' @importFrom dplyr left_join filter group_by summarise mutate arrange
+#'   transmute join_by
+#' @importFrom tidyr pivot_wider
+#' @importFrom purrr map map_dbl
+#' @importFrom stringr str_replace_all
+#' @importFrom effsize VD.A
+#' @importFrom gt fmt_number cols_label tab_spanner tab_footnote md
+#'
+#' @seealso [make_cobra_activity_table()], [run_cobra_activity_tests()]
+#'
+#' @export
+make_cobra_activity_table_supp <- function(cobra_analysis, activity_tests) {
+
+  # Per-activity Wilcoxon rank-sum + VDA (SA > non-SA direction)
+  compute_mw <- function(activity_name) {
+    d1 <- cobra_analysis$cad |>
+      filter(activity == activity_name) |>
+      group_by(id) |>
+      summarise(total = sum(hours_per_week), .groups = "drop") |>
+      left_join(
+        cobra_analysis$data |> select(id, sa),
+        by = join_by(id)
+      ) |>
+      filter(!is.na(sa))
+    list(
+      wt  = wilcox.test(d1$total[d1$sa],  d1$total[!d1$sa]),
+      vda = VD.A(d1$total[d1$sa], d1$total[!d1$sa])
+    )
+  }
+
+  tab <- cobra_analysis$cad |>
+    left_join(
+      cobra_analysis$data |> select(id, sa, saf),
+      by = join_by(id)
+    ) |>
+    filter(!is.na(saf)) |>
+    group_by(activity, saf) |>
+    summarise(
+      med = median(hours_per_week),
+      lo  = min(hours_per_week),
+      hi  = max(hours_per_week),
+      .groups = "drop"
+    ) |>
+    pivot_wider(
+      id_cols     = "activity",
+      names_from  = "saf",
+      values_from = c("med", "lo", "hi")
+    ) |>
+    mutate(
+      # preserve sort order from the main table
+      d_sort = map_dbl(activity, ~ apa::cohens_d(activity_tests[[.x]])),
+      mw     = map(activity, compute_mw),
+      vda    = map_dbl(mw, ~ .x$vda$estimate),
+      W      = map_dbl(mw, ~ .x$wt$statistic),
+      p      = map_dbl(mw, ~ .x$wt$p.value)
+    ) |>
+    arrange(-abs(d_sort)) |>
+    transmute(
+      activity        = str_replace_all(activity, "_", " "),
+      SA_med_range    = sprintf(
+        "%.1f (%.0f\u2013%.0f)",
+        `med_Superager`, `lo_Superager`, `hi_Superager`
+      ),
+      nonSA_med_range = sprintf(
+        "%.1f (%.0f\u2013%.0f)",
+        `med_non-Superager`, `lo_non-Superager`, `hi_non-Superager`
+      ),
+      vda,
+      W,
+      p
+    )
+
+  tab |>
+    gt_apa(
+      title = "Average time spent in each activity per week (non-parametric)"
+    ) |>
+    tab_spanner(label = "Superagers",     columns = SA_med_range) |>
+    tab_spanner(label = "non-Superagers", columns = nonSA_med_range) |>
+    fmt_number(columns = c(vda, p), decimals = 3) |>
+    fmt_number(columns = W,         decimals = 1) |>
+    cols_label(
+      activity        = "Activity",
+      SA_med_range    = md("Median (min\u2013max)"),
+      nonSA_med_range = md("Median (min\u2013max)"),
+      vda             = "VD.A",
+      W               = md("*W*"),
+      p               = md("*p*")
+    ) |>
+    tab_footnote(
+      "Activities are sorted by decreasing absolute Cohen's d (see main text Table 3)."
     )
 }
 

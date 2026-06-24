@@ -27,6 +27,7 @@ options(mc.cores = parallel::detectCores())
 
 # Build the pipeline
 list(
+  target_files,
   target_data,
   target_counts,
   target_intensities,

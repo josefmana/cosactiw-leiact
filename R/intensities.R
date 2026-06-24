@@ -534,7 +534,7 @@ compute_posterior_expectations <- function(data, fit, output = "expectations") {
           }
 
           est <- paste0(rprint(median(dif), 2), " ", ciprint(unlist(eti(dif))[-1]))
-          pd  <- paste0(rprint(100 * c(p_direction(dif))$pd, 2), "%")
+          pd  <- paste0(rprint(100 * c(p_direction(dif))$pd, 1), "%")
           return(c(Estimate = est, pd = pd))
         }
       )

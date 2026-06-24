@@ -7,20 +7,13 @@ data_long|stem|1d5c056120dc4320|eb5cbe55a8c656cb|3818920839408f77|1218221069||t2
 data_wide|stem|0ae1c75598ad3297|2dcdbfa9e219ea30|fdefe6d8b768c4b2|758548593||t20624.6335773677s|s11444b|11444|rds|local|vector|||3.138||
 preprocessed_data|stem|ff9275566448450e|3f9739eb4fdf5d2a|67285ba66e7bb64b|1942981700||t20624.6335785895s|s48338b|48338|rds|local|vector|||0.042||
 counts_regression_specifications|stem|7e34e31b503cd983|f89bf5845b508e0e|58373680df1bb405|-1789242410||t20624.6335788126s|s294b|294|rds|local|vector|||0.001||
-activity_counts|stem|423293b498014e8d|dd461161bb1ff45e|495bcb4ca934166d|-2130377595||t20624.6335799032s|s479b|479|rds|local|vector|||0.077||
 N|stem|26dcaa617af46b90|efcec06bcd32c752|f8167fdd890c1921|757794444||t20624.6335801121s|s88b|88|rds|local|vector|||0.011||
-cross_tables|stem|f3763ae80a5d481e|ac868c53a460e5a8|53d005f62d1fad78|493247077||t20624.6335805427s|s515b|515|rds|local|vector|||0.019||
 demography_comparisons|stem|998a6103c7720be2|87592c28695c702a|876987bde22fd9cb|-1870215710||t20624.6335808734s|s258b|258|rds|local|vector|||0.021||
 ppc_data|stem|ff9275566448450e|5bfba227f9bf3d76|a48df83e0e11dd9a|-1125252000||t20624.6365669632s|s48338b|48338|rds|local|vector|||0.01||
 formulas|stem|fa324bd3a6de2d61|aa5422cfa93bdc58|a530d181bb12e398|546578013||t20624.6538998009s|s451b|451|rds|local|vector|||1.53||
 intensities_loglinear_regressions|stem|7cc63ab02929603d|c2643d982e520a37|b729e544df9b4fa6|-1555390142||t20624.6938792962s|s99353676b|99353676|rds|local|vector|||3450.447|Rows containing NAs were excluded from the model.. There were 2 divergent transitions after warmup. See https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup to find out why this is a problem and how to eliminate them.. Examine the pairs() plot to diagnose sampling problems . Rows containing NAs were excluded from the model.|
 counts_regressions|stem|23630b973a0aa7f2|a4aad634252d4bc5|89cd959751ec2f9a|-1727823195||t20624.693881409s|s438505b|438505|rds|local|vector|||0.03||
-counts_comparisons_table|stem|0d02691c8d25af8d|3b7ee2f7785ed7b1|01bc4c453419fc7d|416282435||t20624.6938820424s|s828b|828|rds|local|vector|||0.043||
-chisquares|stem|b1a2048e9cb0c97b|b2b4c81fb84e5e72|4c471281515364c8|348073509||t20624.6938823376s|s194b|194|rds|local|vector|||0.019|Chi-squared approximation may be incorrect. Chi-squared approximation may be incorrect|
-posterior_contrasts|stem|966e97a31f77ec6e|d5454e3bb63c755b|156f00f443510569|2043104887||t20624.6938999409s|s2655b|2655|rds|local|vector|||0.914||
-posterior_expectations|stem|f3baead479c9b53c|23e4c6198564c6b6|156f00f443510569|-611446541||t20624.6939158334s|s5559b|5559|rds|local|vector|||0.799||
 loo_comparisons|stem|0bfc8631a77eeb4e|9028b88db27c6d0e|decc93894768335f|-1911282058||t20624.6977022947s|s2804979b|2804979|rds|local|vector|||53.099||
-counts_regressions_table|stem|7a38d42ab5ee7ae2|59bfbd1507b2df59|84370966d38463d7|-947356000||t20624.6977043324s|s1326b|1326|rds|local|vector|||0.132||
 counts_regressions_diagnostics|stem|d47b67ec983b1398|1ab4f536c01f84f6|9ea86506bb0bd7ad|1922110440||t20624.6977436128s|s3359915b|3359915|rds|local|vector|||2.717|Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.. Argument `x` is deprecated; please use `model` instead.|
 posterior_predictive_checks|stem|c1ddc3dac8c76508|fcc74bc582d30d38|8b3945e133c1f8ce|-548983520||t20624.7597365765s|s3471540627b|3471540627|rds|local|vector|||160.461|The following arguments were unrecognized and ignored: stat. The following arguments were unrecognized and ignored: stat. The following arguments were unrecognized and ignored: stat. The following arguments were unrecognized and ignored: stat. The following arguments were unrecognized and ignored: stat. The following arguments were unrecognized and ignored: stat|
 posterior_interaction_plots|stem|a735006466e2b4f6|4bfa9d6705c3145f|87a8b44a1023e1b0|203463076||t20624.7597751539s|s203b|203|rds|local|vector|||1.174||
@@ -36,7 +29,16 @@ physical_activity_analysis|stem|b688af29123ce7c1|fca770904a68ef22|fd6a15b6b18279
 cobra_analysis|stem|c89df36c35a0b71e|561c62f4cc19490b|e0dfb0d23e84d8cd|-909091753||t20625.630479295s|s6850b|6850|rds|local|vector|||0.023||
 cobra_regressions|stem|11d7a53907db4cf4|02bd246c75531401|71820ad9df3552eb|1372415565||t20625.6304800069s|s28647b|28647|rds|local|vector|||0.046||
 cobra_activity_tests|stem|82e694cc81e9f96a|4a9fca2a88fceb5b|8807deba9315ee3b|1517635205||t20625.6304807574s|s2679b|2679|rds|local|vector|||0.055||
-cobra_activity_table|stem|7c09f58246440dc4|3e0420c71b66ab7d|b65616ee3457db31|-180231814||t20625.6564038861s|s69338b|69338|rds|local|vector|||0.076||
+cross_tables|stem|91bbea3d8f8893d4|ac868c53a460e5a8|2566a6f89d4304fc|493247077||t20627.3575327137s|s507b|507|rds|local|vector|||0.046||
+chisquares|stem|b1a2048e9cb0c97b|b2b4c81fb84e5e72|7776eff796215331|348073509||t20627.3575332126s|s194b|194|rds|local|vector|||0.026|Chi-squared approximation may be incorrect. Chi-squared approximation may be incorrect|
+cobra_activity_table|stem|3ab4ccb5887451c5|3e0420c71b66ab7d|d99fc6fda09c477e|-180231814||t20628.3571741933s|s57356b|57356|rds|local|vector|||0.075||
+activity_counts|stem|010ed65e6c5aff31|dd461161bb1ff45e|71a1a79fbfe65a43|-2130377595||t20628.3825442067s|s416b|416|rds|local|vector|||0.101||
+counts_comparisons_table|stem|4488d06a3b6270c4|3b7ee2f7785ed7b1|acb49ff0765e873e|416282435||t20628.3825448044s|s709b|709|rds|local|vector|||0.035||
+cobra_activity_table_supp|stem|948e09bbba48477d|ac50ac44a6a3baf0|e534ede1f93f6424|762627184||t20628.4372319098s|s67195b|67195|rds|local|vector|||0.107||
+counts_comparisons_table_supp|stem|8c5368ae814b34c4|d191648a1d78fb86|4b9dfc1bde701977|255743045||t20628.4379431225s|s587b|587|rds|local|vector|||0.04||
+posterior_expectations|stem|f3baead479c9b53c|23e4c6198564c6b6|40cd5f338b00e29e|-611446541||t20628.4625043744s|s5559b|5559|rds|local|vector|||1.182||
+posterior_contrasts|stem|917df55bed1e988f|d5454e3bb63c755b|40cd5f338b00e29e|2043104887||t20628.4625218697s|s2557b|2557|rds|local|vector|||0.699||
+counts_regressions_table|stem|eb4c423ba0ca9114|59bfbd1507b2df59|96c990736e1f286b|-947356000||t20628.4710591707s|s1147b|1147|rds|local|vector|||0.186||
 pivot_data|function|3c9a66f1cef9ce36
 specify_regression|function|038eee5dee79a256
 rprint|function|7af34ef416b83f41
@@ -67,20 +69,22 @@ npc|function|194c4fa721d065f2
 compare_physical_activity|function|14aa98d9b7bae73d
 fit_cobra_regressions|function|32a87731d5856430
 cenvar|function|8c516318793dfe05
-contingency_tables|function|5efb19365785745c
+contingency_tables|function|d5ce4c20e0fb1932
 ubound|function|7fa7fa36a7077e34
 ciprint|function|ce0fabc2d845a7dc
 zerolead|function|6e34b460b65da301
-make_cobra_activity_table|function|9860a32d835259ca
+make_cobra_activity_table|function|61fbf4c071892712
+make_cobra_activity_table_supp|function|8caa1595ea8211b0
 perform_posterior_checks|function|6d7cdd254d35b63a
 draw_interaction_plots|function|2b1819f7f7338eba
 run_cobra_activity_tests|function|f958c8a2b7990532
-count_activities|function|ad57b9ca678fbdfb
-compute_posterior_expectations|function|9e02cc878591812c
+count_activities|function|a457f7b92cdc2822
+compute_posterior_expectations|function|7466f3453be3dfe9
 pprint|function|1afa59996022727c
-extract_parameters|function|a127cc4b050d05bb
+add_comparisons|function|7676ed97996d985d
+extract_parameters|function|e53179be6002ab9f
+add_comparisons_supp|function|c32ec2f4c16e1cc8
 chi_squares|function|cdf80a810635570d
-add_comparisons|function|f168165bcb70688c
 compare_demography|function|3ef0d615792e0f95
-add_regression_parameters|function|bd2c5aec8c29f3f8
-report|stem|94920d70546d7eaa|f749336d9e39e4b4|65292be8e8bb280f|787668912|outputs/report.html*outputs/report.pdf*outputs/report.qmd|t20625.6618254599s|s1759535b|1759535|file|local|vector|||18.857||
+add_regression_parameters|function|9f362dd825714bbd
+report|stem|41e3516f06c47f93|7d3db50082e53734|71eab95cc7523cc2|787668912|outputs/report.html*outputs/report.pdf*outputs/report.qmd|t20628.4738285118s|s1764244b|1764244|file|local|vector|||19.152||
