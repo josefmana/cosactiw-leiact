@@ -31,7 +31,6 @@ cobra_regressions|stem|11d7a53907db4cf4|02bd246c75531401|71820ad9df3552eb|137241
 cobra_activity_tests|stem|82e694cc81e9f96a|4a9fca2a88fceb5b|8807deba9315ee3b|1517635205||t20625.6304807574s|s2679b|2679|rds|local|vector|||0.055||
 cross_tables|stem|91bbea3d8f8893d4|ac868c53a460e5a8|2566a6f89d4304fc|493247077||t20627.3575327137s|s507b|507|rds|local|vector|||0.046||
 chisquares|stem|b1a2048e9cb0c97b|b2b4c81fb84e5e72|7776eff796215331|348073509||t20627.3575332126s|s194b|194|rds|local|vector|||0.026|Chi-squared approximation may be incorrect. Chi-squared approximation may be incorrect|
-cobra_activity_table|stem|3ab4ccb5887451c5|3e0420c71b66ab7d|d99fc6fda09c477e|-180231814||t20628.3571741933s|s57356b|57356|rds|local|vector|||0.075||
 activity_counts|stem|010ed65e6c5aff31|dd461161bb1ff45e|71a1a79fbfe65a43|-2130377595||t20628.3825442067s|s416b|416|rds|local|vector|||0.101||
 counts_comparisons_table|stem|4488d06a3b6270c4|3b7ee2f7785ed7b1|acb49ff0765e873e|416282435||t20628.3825448044s|s709b|709|rds|local|vector|||0.035||
 counts_comparisons_table_supp|stem|8c5368ae814b34c4|d191648a1d78fb86|4b9dfc1bde701977|255743045||t20628.4379431225s|s587b|587|rds|local|vector|||0.04||
@@ -39,6 +38,7 @@ posterior_expectations|stem|f3baead479c9b53c|23e4c6198564c6b6|40cd5f338b00e29e|-
 posterior_contrasts|stem|917df55bed1e988f|d5454e3bb63c755b|40cd5f338b00e29e|2043104887||t20628.4625218697s|s2557b|2557|rds|local|vector|||0.699||
 counts_regressions_table|stem|eb4c423ba0ca9114|59bfbd1507b2df59|96c990736e1f286b|-947356000||t20628.4710591707s|s1147b|1147|rds|local|vector|||0.186||
 cobra_activity_table_supp|stem|425f0cdb0be2ce4a|ac50ac44a6a3baf0|7d347b3c2dc67428|762627184||t20628.5298622008s|s67237b|67237|rds|local|vector|||0.1||
+cobra_activity_table|stem|a3ec516660828318|3e0420c71b66ab7d|2a0f72b1ab4e0482|-180231814||t20628.7704554103s|s57567b|57567|rds|local|vector|||0.057||
 pivot_data|function|3c9a66f1cef9ce36
 specify_regression|function|038eee5dee79a256
 rprint|function|7af34ef416b83f41
@@ -73,7 +73,7 @@ contingency_tables|function|d5ce4c20e0fb1932
 ubound|function|7fa7fa36a7077e34
 ciprint|function|ce0fabc2d845a7dc
 zerolead|function|6e34b460b65da301
-make_cobra_activity_table|function|61fbf4c071892712
+make_cobra_activity_table|function|ce72db06431a0aee
 make_cobra_activity_table_supp|function|0b67ff1d80d97ff1
 perform_posterior_checks|function|6d7cdd254d35b63a
 draw_interaction_plots|function|2b1819f7f7338eba
@@ -87,4 +87,4 @@ add_comparisons_supp|function|c32ec2f4c16e1cc8
 chi_squares|function|cdf80a810635570d
 compare_demography|function|3ef0d615792e0f95
 add_regression_parameters|function|9f362dd825714bbd
-report|stem|800c96e5124cdc83|7d3db50082e53734|3fadf545e90f5cc0|787668912|outputs/report.html*outputs/report.pdf*outputs/report.qmd|t20628.5652018917s|s1770115b|1770115|file|local|vector|||19.281||
+report|stem|30b92489002c5731|7d3db50082e53734|010b76d73222cacb|787668912|outputs/report.html*outputs/report.pdf*outputs/report.qmd|t20628.7748500098s|s1771088b|1771088|file|local|vector|||24.242||

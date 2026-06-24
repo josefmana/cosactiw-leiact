@@ -44,6 +44,11 @@ author:
       - name: PVSPS
         department: OVV
         city: Prague
+  - name: Jeffrey Martin
+    corresponding: false
+    affiliations:
+      - name: Wayne State University
+        city: Detroit, MI
   - name: Hana Georgi
     corresponding: false
     affiliations:
@@ -65,14 +70,13 @@ warning: false
 library(targets)
 library(tidyverse)
 library(gt)
-library(rstan) # for stan_version()
-library(gtExtras)
-library(papaja)
 
 upstore <- tar_path_store()
 
 tar_source()
 theme_set(theme_minimal())
+
+new_folder("tables")
 ```
 
 # Methods
@@ -176,7 +180,7 @@ beta_CI <- paste0(
 ```{r}
 #| label: tbl-la-counts
 
-la_counts |>
+tab1 <- la_counts |>
   mutate(
     category = if_else(category == "-", "all", category),
     across(
@@ -198,6 +202,9 @@ la_counts |>
     cohens_d        ~ md("*d*"),
     p               ~ md("*p*")
   )
+
+gtsave(tab1, here::here("tables", "table_1.docx"))
+tab1
 ```
 
 **Number of participants reporting an activity.** The overall distribution of the number of participants engaging in at least one activity from each activity type is presented in @tbl-la-nums. Based on the data, the null hypothesis of activity type and SA status independence was not rejected for either physical ($\chi^2$(`r chisquares['physical', 'df']`) = `r chisquares['physical', 'chisq']`, *p* = `r chisquares['physical', 'p']`, Cramér's *V* = `r chisquares['physical', 'cramer_v']`) or mental ($\chi^2$(`r chisquares['mental', 'df']`) = `r chisquares['mental', 'chisq']`, *p* = `r chisquares['mental', 'p']`, Cramér's *V* = `r chisquares['mental', 'cramer_v']`) activities.
@@ -205,7 +212,7 @@ la_counts |>
 ```{r}
 #| label: tbl-la-nums
 
-cross_tables |>
+tab2 <- cross_tables |>
   select(-ends_with("SA")) |>
   relocate(nonSA_perc, .before = SA_perc) |>
   mutate(Type = capitalise(Type)) |>
@@ -222,6 +229,9 @@ cross_tables |>
     SA_perc ~ "Superagers",
     nonSA_perc ~ "non-Superagers"
   )
+
+gtsave(tab2, here::here("tables", "table_2.docx"))
+tab2
 ```
 
 ```{r}
@@ -248,7 +258,10 @@ As an exploratory analysis, we compared the involvement in individual activities
 ```{r}
 #| label: tbl-cobra-activity
 
-tar_read(cobra_activity_table, store = upstore)
+tab3 <- tar_read(cobra_activity_table, store = upstore)
+
+gtsave(tab3, here::here("tables", "table_3.docx"))
+tab3
 ```
 
 **Physical activity.** Majority of the sample passed WHO criteria for sufficient physical activity (n = `r physical_activity_analysis$n_who_pa`, or `r physical_activity_analysis$pct_who_pa |> rnd()`%). Fulfilling the WHO criteria was not associated with SuperAging (`r physical_activity_analysis$chisq |> apa::chisq_apa(print = FALSE, format = "rmarkdown")`).
@@ -262,7 +275,7 @@ tar_read(cobra_activity_table, store = upstore)
 ```{r}
 #| label: tbl-la-counts-supp
 
-la_supp |>
+tab_a1 <- la_supp |>
   mutate(
     category = if_else(category == "-", "all", category),
     across(
@@ -283,12 +296,15 @@ la_supp |>
     W              ~ md("*W*"),
     p              ~ md("*p*")
   )
+
+gtsave(tab_a1, here::here("tables", "table_a1.docx"))
+tab_a1
 ```
 
 ```{r}
 #| label: tbl-la-regres
 
-la_regres |>
+tab_a2 <- la_regres |>
   mutate(
     `Activity Type`   = if_else(category == "-", "all", category),
     Intercept         = paste(`b_(Intercept)`,      `CI_(Intercept)`     , sep = " "),
@@ -313,12 +329,15 @@ la_regres |>
     gather = FALSE
   ) |>
   cols_label(ends_with("SA") ~ "Mean (SD)")
+
+gtsave(tab_a2, here::here("tables", "table_a2.docx"))
+tab_a2
 ```
 
 ```{r}
 #| label: tbl-pair-comps
 
-pwc |>
+tab_a3 <- pwc |>
   filter(!grepl("[A-Za-z]", diff) ) |>
   filter(is.na(diff2)) |>
   filter(!is.na(SA)) |>
@@ -347,10 +366,16 @@ pwc |>
     contains("Estimate") ~ "Estimate [95% ETI]", 
     contains("pd") ~ "pd"
   )
+
+gtsave(tab_a3, here::here("tables", "table_a3.docx"))
+tab_a3
 ```
 
 ```{r}
 #| label: tbl-cobra-supplemental
 
-tar_read(cobra_activity_table_supp, store = upstore)
+tab_a4 <- tar_read(cobra_activity_table_supp, store = upstore)
+
+gtsave(tab_a4, here::here("tables", "table_a4.docx"))
+tab_a4
 ```
